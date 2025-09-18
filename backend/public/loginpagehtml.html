@@ -1,0 +1,894 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>LiftTrack Pro - Weightlifting & Nutrition Tracker</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        .gradient-bg {
+            background: linear-gradient(135deg, #1e3a8a 0%, #1e40af 100%);
+        }
+        .exercise-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
+        }
+        .progress-ring__circle {
+            transition: stroke-dashoffset 0.5s;
+            transform: rotate(-90deg);
+            transform-origin: 50% 50%;
+        }
+        .floating-btn {
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+        }
+        .nutrition-card {
+            transition: all 0.3s ease;
+        }
+        .nutrition-card:hover {
+            transform: scale(1.03);
+        }
+    </style>
+</head>
+<body class="bg-gray-100 font-sans">
+    <div class="min-h-screen flex items-center justify-center bg-gray-50 px-4">
+        <div class="max-w-md w-full bg-white p-8 rounded-xl shadow-lg">
+            <div class="text-center mb-8">
+                <i class="fas fa-dumbbell text-5xl text-blue-600 mb-4"></i>
+                <h1 class="text-3xl font-bold text-gray-800">LiftTrack Pro</h1>
+                <p class="text-gray-600 mt-2">Track your workouts and nutrition</p>
+            </div>
+            
+            <div>
+                <div class="mb-4">
+                    <label for="loginUsername" class="block text-sm font-medium text-gray-700 mb-1">Username</label>
+                    <input type="text" id="loginUsername" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-blue-500 focus:border-blue-500">
+                </div>
+                <div class="mb-6">
+                    <label for="loginPassword" class="block text-sm font-medium text-gray-700 mb-1">Password</label>
+                    <input type="password" id="loginPassword" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-blue-500 focus:border-blue-500">
+                </div>
+                <button id="loginBtn" class="w-full bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg transition mb-4">
+                    Login
+                </button>
+                <p class="text-center text-sm text-gray-600">
+                    Don't have an account? 
+                    <button id="showRegisterBtn" class="text-blue-600 hover:text-blue-800 font-medium">Register</button>
+                </p>
+            </div>
+
+            <div id="registerForm" class="hidden" style="display: none;">
+                <div class="mb-4">
+                    <label for="registerUsername" class="block text-sm font-medium text-gray-700 mb-1">Username</label>
+                    <input type="text" id="registerUsername" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-blue-500 focus:border-blue-500">
+                </div>
+                <div class="mb-4">
+                    <label for="registerPassword" class="block text-sm font-medium text-gray-700 mb-1">Password</label>
+                    <input type="password" id="registerPassword" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-blue-500 focus:border-blue-500">
+                </div>
+                <div class="mb-6">
+                    <label for="confirmPassword" class="block text-sm font-medium text-gray-700 mb-1">Confirm Password</label>
+                    <input type="password" id="confirmPassword" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-blue-500 focus:border-blue-500">
+                </div>
+                <button id="registerBtn" class="w-full bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg transition mb-4">
+                    Create Account
+                </button>
+                <p class="text-center text-sm text-gray-600">
+                    Already have an account? 
+                    <button id="showLoginBtn" class="text-blue-600 hover:text-blue-800 font-medium">Login</button>
+                </p>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // User Management
+        let users = JSON.parse(localStorage.getItem('users')) || {};
+
+        // DOM Elements
+        const loginForm = document.getElementById('loginForm');
+        const registerForm = document.getElementById('registerForm');
+        const showRegisterBtn = document.getElementById('showRegisterBtn');
+        const showLoginBtn = document.getElementById('showLoginBtn');
+        const loginBtn = document.getElementById('loginBtn');
+        const registerBtn = document.getElementById('registerBtn');
+
+        // Login/Register handlers
+        showRegisterBtn.addEventListener('click', () => {
+            loginForm.style.display = 'none';
+            registerForm.style.display = 'block';
+        });
+
+        showLoginBtn.addEventListener('click', () => {
+            registerForm.style.display = 'none';
+            loginForm.style.display = 'block';
+        });
+
+        loginBtn.addEventListener('click', () => {
+            const username = document.getElementById('loginUsername').value.trim();
+            const password = document.getElementById('loginPassword').value;
+
+            if (!username || !password) {
+                alert('Please enter both username and password');
+                return;
+            }
+
+            if (!users[username] || users[username].password !== password) {
+                alert('Invalid username or password');
+                return;
+            }
+
+            localStorage.setItem('currentUser', username);
+            window.location.href = 'tracker.html';
+        });
+
+        registerBtn.addEventListener('click', () => {
+            const username = document.getElementById('registerUsername').value.trim();
+            const password = document.getElementById('registerPassword').value;
+            const confirmPassword = document.getElementById('confirmPassword').value;
+
+            if (!username || !password) {
+                alert('Please enter both username and password');
+                return;
+            }
+
+            if (password !== confirmPassword) {
+                alert('Passwords do not match');
+                return;
+            }
+
+            if (users[username]) {
+                alert('Username already exists');
+                return;
+            }
+
+            users[username] = {
+                password: password,
+                workouts: [],
+                nutritionData: {
+                    totalCalories: 0,
+                    totalProtein: 0,
+                    totalCarbs: 0,
+                    foods: []
+                }
+            };
+
+            localStorage.setItem('users', JSON.stringify(users));
+            localStorage.setItem('currentUser', username);
+            window.location.href = 'tracker.html';
+        });
+    </script>
+</body>
+</html>
+        <!-- Header -->
+        <header class="gradient-bg text-white shadow-lg">
+            <div class="container mx-auto px-4 py-6">
+                <div class="flex justify-between items-center">
+                    <div class="flex items-center space-x-2">
+                        <i class="fas fa-dumbbell text-2xl"></i>
+                        <h1 class="text-2xl font-bold">LiftTrack Pro</h1>
+                    </div>
+                    <div class="flex items-center space-x-4">
+                        <button id="themeToggle" class="p-2 rounded-full hover:bg-blue-900 transition">
+                            <i class="fas fa-moon"></i>
+                        </button>
+                        <button class="p-2 rounded-full hover:bg-blue-900 transition">
+                            <i class="fas fa-user"></i>
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </header>
+
+        <!-- Main Content -->
+        <main class="flex-grow container mx-auto px-4 py-8">
+            <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+                <!-- Left Column -->
+                <div class="lg:col-span-2 space-y-8">
+                    <!-- Workout Section -->
+                    <section class="bg-white rounded-xl shadow-md p-6">
+                        <div class="flex justify-between items-center mb-6">
+                            <h2 class="text-xl font-bold text-gray-800">Today's Workout</h2>
+                            <button id="newWorkoutBtn" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg flex items-center space-x-2 transition">
+                                <i class="fas fa-plus"></i>
+                                <span>New Workout</span>
+                            </button>
+                        </div>
+
+                        <div id="workoutList" class="space-y-4">
+                            <!-- Workout items will be added here dynamically -->
+                        </div>
+                    </section>
+
+                    <!-- Exercise History -->
+                    <section class="bg-white rounded-xl shadow-md p-6">
+                        <h2 class="text-xl font-bold text-gray-800 mb-6">Exercise History</h2>
+                        <div class="overflow-x-auto">
+                            <table class="min-w-full divide-y divide-gray-200">
+                                <thead class="bg-gray-50">
+                                    <tr>
+                                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Exercise</th>
+                                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Last Weight</th>
+                                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Suggested</th>
+                                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Progress</th>
+                                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Date</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="historyTable" class="bg-white divide-y divide-gray-200">
+                                    <!-- History data will be added here dynamically -->
+                                </tbody>
+                            </table>
+                        </div>
+                    </section>
+                </div>
+
+                <!-- Right Column -->
+                <div class="space-y-8">
+                    <!-- Nutrition Tracker -->
+                    <section class="bg-white rounded-xl shadow-md p-6">
+                        <h2 class="text-xl font-bold text-gray-800 mb-6">Nutrition Tracker</h2>
+                        
+                        <div class="grid grid-cols-3 gap-4 mb-6">
+                            <div class="nutrition-card bg-blue-50 rounded-lg p-4 text-center">
+                                <h3 class="text-sm font-medium text-gray-600">Calories</h3>
+                                <p id="calories" class="text-2xl font-bold text-blue-600">0</p>
+                                <p class="text-xs text-gray-500">/ 2500 kcal</p>
+                            </div>
+                            <div class="nutrition-card bg-green-50 rounded-lg p-4 text-center">
+                                <h3 class="text-sm font-medium text-gray-600">Protein</h3>
+                                <p id="protein" class="text-2xl font-bold text-green-600">0g</p>
+                                <p class="text-xs text-gray-500">/ 180g</p>
+                            </div>
+                            <div class="nutrition-card bg-yellow-50 rounded-lg p-4 text-center">
+                                <h3 class="text-sm font-medium text-gray-600">Carbs</h3>
+                                <p id="carbs" class="text-2xl font-bold text-yellow-600">0g</p>
+                                <p class="text-xs text-gray-500">/ 300g</p>
+                            </div>
+                        </div>
+
+                        <div class="space-y-4">
+                            <div>
+                                <label for="foodInput" class="block text-sm font-medium text-gray-700 mb-1">Food Item</label>
+                                <input type="text" id="foodInput" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-blue-500 focus:border-blue-500">
+                            </div>
+                            <div class="grid grid-cols-3 gap-4">
+                                <div>
+                                    <label for="caloriesInput" class="block text-sm font-medium text-gray-700 mb-1">Calories</label>
+                                    <input type="number" id="caloriesInput" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-blue-500 focus:border-blue-500">
+                                </div>
+                                <div>
+                                    <label for="proteinInput" class="block text-sm font-medium text-gray-700 mb-1">Protein (g)</label>
+                                    <input type="number" id="proteinInput" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-blue-500 focus:border-blue-500">
+                                </div>
+                                <div>
+                                    <label for="carbsInput" class="block text-sm font-medium text-gray-700 mb-1">Carbs (g)</label>
+                                    <input type="number" id="carbsInput" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-blue-500 focus:border-blue-500">
+                                </div>
+                            </div>
+                            <button id="addFoodBtn" class="w-full bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg flex items-center justify-center space-x-2 transition">
+                                <i class="fas fa-plus"></i>
+                                <span>Add Food</span>
+                            </button>
+                        </div>
+
+                        <div class="mt-6">
+                            <h3 class="text-lg font-medium text-gray-800 mb-3">Today's Meals</h3>
+                            <ul id="foodList" class="divide-y divide-gray-200">
+                                <!-- Food items will be added here dynamically -->
+                            </ul>
+                        </div>
+                    </section>
+
+                    <!-- Progress Charts -->
+                    <section class="bg-white rounded-xl shadow-md p-6">
+                        <h2 class="text-xl font-bold text-gray-800 mb-6">Progress</h2>
+                        <div class="grid grid-cols-2 gap-4">
+                            <div class="text-center">
+                                <h3 class="text-sm font-medium text-gray-600 mb-2">Strength</h3>
+                                <div class="relative w-24 h-24 mx-auto">
+                                    <svg class="w-full h-full" viewBox="0 0 36 36">
+                                        <path class="text-gray-200" d="M18 2.0845
+                                            a 15.9155 15.9155 0 0 1 0 31.831
+                                            a 15.9155 15.9155 0 0 1 0 -31.831" fill="none" stroke="currentColor" stroke-width="3" stroke-dasharray="100, 100"/>
+                                        <path id="strengthRing" class="text-blue-600" d="M18 2.0845
+                                            a 15.9155 15.9155 0 0 1 0 31.831
+                                            a 15.9155 15.9155 0 0 1 0 -31.831" fill="none" stroke="currentColor" stroke-width="3" stroke-dasharray="75, 100" stroke-linecap="round"/>
+                                    </svg>
+                                    <div class="absolute inset-0 flex items-center justify-center">
+                                        <span id="strengthPercent" class="text-lg font-bold text-gray-800">75%</span>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="text-center">
+                                <h3 class="text-sm font-medium text-gray-600 mb-2">Nutrition</h3>
+                                <div class="relative w-24 h-24 mx-auto">
+                                    <svg class="w-full h-full" viewBox="0 0 36 36">
+                                        <path class="text-gray-200" d="M18 2.0845
+                                            a 15.9155 15.9155 0 0 1 0 31.831
+                                            a 15.9155 15.9155 0 0 1 0 -31.831" fill="none" stroke="currentColor" stroke-width="3" stroke-dasharray="100, 100"/>
+                                        <path id="nutritionRing" class="text-green-600" d="M18 2.0845
+                                            a 15.9155 15.9155 0 0 1 0 31.831
+                                            a 15.9155 15.9155 0 0 1 0 -31.831" fill="none" stroke="currentColor" stroke-width="3" stroke-dasharray="60, 100" stroke-linecap="round"/>
+                                    </svg>
+                                    <div class="absolute inset-0 flex items-center justify-center">
+                                        <span id="nutritionPercent" class="text-lg font-bold text-gray-800">60%</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </section>
+                </div>
+            </div>
+        </main>
+
+        <!-- Add Exercise Modal -->
+        <div id="exerciseModal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 hidden">
+            <div class="bg-white rounded-xl p-6 w-full max-w-md">
+                <div class="flex justify-between items-center mb-4">
+                    <h3 class="text-xl font-bold text-gray-800">Add Exercise</h3>
+                    <button id="closeModalBtn" class="text-gray-500 hover:text-gray-700">
+                        <i class="fas fa-times"></i>
+                    </button>
+                </div>
+                <div class="space-y-4">
+                    <div>
+                        <label for="exerciseSelect" class="block text-sm font-medium text-gray-700 mb-1">Exercise</label>
+                        <select id="exerciseSelect" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-blue-500 focus:border-blue-500">
+                            <option value="">Select an exercise</option>
+                            <option value="Bench Press">Bench Press</option>
+                            <option value="Squat">Squat</option>
+                            <option value="Deadlift">Deadlift</option>
+                            <option value="Overhead Press">Overhead Press</option>
+                            <option value="Barbell Row">Barbell Row</option>
+                            <option value="Pull-Up">Pull-Up</option>
+                            <option value="Dumbbell Curl">Dumbbell Curl</option>
+                            <option value="Triceps Extension">Triceps Extension</option>
+                            <option value="Other">Other (specify below)</option>
+                        </select>
+                        <div id="otherExerciseContainer" class="mt-2 hidden">
+                            <label for="otherExerciseInput" class="block text-sm font-medium text-gray-700 mb-1">Custom Exercise Name</label>
+                            <input type="text" id="otherExerciseInput" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-blue-500 focus:border-blue-500">
+                        </div>
+                    </div>
+                    <div class="grid grid-cols-2 gap-4">
+                        <div>
+                            <label for="weightInput" class="block text-sm font-medium text-gray-700 mb-1">Weight (kg)</label>
+                            <input type="number" id="weightInput" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-blue-500 focus:border-blue-500">
+                        </div>
+                        <div>
+                            <label for="repsInput" class="block text-sm font-medium text-gray-700 mb-1">Reps</label>
+                            <input type="number" id="repsInput" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-blue-500 focus:border-blue-500">
+                        </div>
+                    </div>
+                    <div class="grid grid-cols-2 gap-4">
+                        <div>
+                            <label for="setsInput" class="block text-sm font-medium text-gray-700 mb-1">Sets</label>
+                            <input type="number" id="setsInput" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-blue-500 focus:border-blue-500" value="3">
+                        </div>
+                        <div>
+                            <label for="rpeInput" class="block text-sm font-medium text-gray-700 mb-1">RPE (1-10)</label>
+                            <input type="number" id="rpeInput" min="1" max="10" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-blue-500 focus:border-blue-500" value="7">
+                        </div>
+                    </div>
+                    <button id="saveExerciseBtn" class="w-full bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg transition">
+                        Save Exercise
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // User Management
+        let currentUser = null;
+        let users = JSON.parse(localStorage.getItem('users')) || {};
+
+        // DOM Elements
+        const loginPage = document.getElementById('loginPage');
+        const mainApp = document.getElementById('mainApp');
+        const loginForm = document.getElementById('loginForm');
+        const registerForm = document.getElementById('registerForm');
+        const showRegisterBtn = document.getElementById('showRegisterBtn');
+        const showLoginBtn = document.getElementById('showLoginBtn');
+        const loginBtn = document.getElementById('loginBtn');
+        const registerBtn = document.getElementById('registerBtn');
+        const themeToggle = document.getElementById('themeToggle');
+        const newWorkoutBtn = document.getElementById('newWorkoutBtn');
+        const workoutList = document.getElementById('workoutList');
+        const historyTable = document.getElementById('historyTable');
+        const exerciseModal = document.getElementById('exerciseModal');
+        const closeModalBtn = document.getElementById('closeModalBtn');
+        const saveExerciseBtn = document.getElementById('saveExerciseBtn');
+        const addFoodBtn = document.getElementById('addFoodBtn');
+        const foodList = document.getElementById('foodList');
+        
+        // Nutrition elements
+        const caloriesElement = document.getElementById('calories');
+        const proteinElement = document.getElementById('protein');
+        const carbsElement = document.getElementById('carbs');
+        
+        // Progress elements
+        const strengthRing = document.getElementById('strengthRing');
+        const nutritionRing = document.getElementById('nutritionRing');
+        const strengthPercent = document.getElementById('strengthPercent');
+        const nutritionPercent = document.getElementById('nutritionPercent');
+
+        // Data storage
+        function getUserData() {
+            if (!currentUser) return null;
+            return users[currentUser] || {
+                workouts: [],
+                nutritionData: {
+            totalCalories: 0,
+            totalProtein: 0,
+            totalCarbs: 0,
+            foods: []
+        };
+
+        function saveUserData() {
+            if (!currentUser) return;
+            localStorage.setItem('users', JSON.stringify(users));
+        }
+
+        // Initialize the app
+        document.addEventListener('DOMContentLoaded', () => {
+            // Check if user is already logged in
+            const savedUser = localStorage.getItem('currentUser');
+            if (savedUser && users[savedUser]) {
+                currentUser = savedUser;
+                loginPage.classList.add('hidden');
+                mainApp.classList.remove('hidden');
+            }
+
+            // Login/Register handlers
+            showRegisterBtn.addEventListener('click', () => {
+                loginForm.classList.add('hidden');
+                registerForm.classList.remove('hidden');
+            });
+
+            showLoginBtn.addEventListener('click', () => {
+                registerForm.classList.add('hidden');
+                loginForm.classList.remove('hidden');
+            });
+
+            loginBtn.addEventListener('click', () => {
+                const username = document.getElementById('loginUsername').value.trim();
+                const password = document.getElementById('loginPassword').value;
+
+                if (!username || !password) {
+                    alert('Please enter both username and password');
+                    return;
+                }
+
+                if (!users[username] || users[username].password !== password) {
+                    alert('Invalid username or password');
+                    return;
+                }
+
+                currentUser = username;
+                localStorage.setItem('currentUser', username);
+                loginPage.classList.add('hidden');
+                mainApp.classList.remove('hidden');
+                location.reload(); // Refresh to load user data
+            });
+
+            registerBtn.addEventListener('click', () => {
+                const username = document.getElementById('registerUsername').value.trim();
+                const password = document.getElementById('registerPassword').value;
+                const confirmPassword = document.getElementById('confirmPassword').value;
+
+                if (!username || !password) {
+                    alert('Please enter both username and password');
+                    return;
+                }
+
+                if (password !== confirmPassword) {
+                    alert('Passwords do not match');
+                    return;
+                }
+
+                if (users[username]) {
+                    alert('Username already exists');
+                    return;
+                }
+
+                users[username] = {
+                    password: password,
+                    workouts: [],
+                    nutritionData: {
+            renderWorkouts();
+            renderHistory();
+            updateNutritionDisplay();
+            updateProgressRings();
+
+            // Handle exercise select change
+            document.getElementById('exerciseSelect').addEventListener('change', (e) => {
+                const otherContainer = document.getElementById('otherExerciseContainer');
+                if (e.target.value === 'Other') {
+                    otherContainer.classList.remove('hidden');
+                } else {
+                    otherContainer.classList.add('hidden');
+                }
+            });
+            
+            // Set initial theme
+            if (localStorage.getItem('theme') === 'dark') {
+                document.documentElement.classList.add('dark');
+                themeToggle.innerHTML = '<i class="fas fa-sun"></i>';
+            } else {
+                document.documentElement.classList.remove('dark');
+                themeToggle.innerHTML = '<i class="fas fa-moon"></i>';
+            }
+        });
+
+        // Theme toggle
+        themeToggle.addEventListener('click', () => {
+            if (document.documentElement.classList.contains('dark')) {
+                document.documentElement.classList.remove('dark');
+                localStorage.setItem('theme', 'light');
+                themeToggle.innerHTML = '<i class="fas fa-moon"></i>';
+            } else {
+                document.documentElement.classList.add('dark');
+                localStorage.setItem('theme', 'dark');
+                themeToggle.innerHTML = '<i class="fas fa-sun"></i>';
+            }
+        });
+
+        // Workout functions
+        newWorkoutBtn.addEventListener('click', () => {
+            const workoutId = Date.now();
+            const newWorkout = {
+                id: workoutId,
+                date: new Date().toISOString(),
+                exercises: []
+            };
+            workouts.push(newWorkout);
+            saveWorkouts();
+            renderWorkouts();
+            openExerciseModal(workoutId);
+        });
+
+        function openExerciseModal(workoutId) {
+            exerciseModal.dataset.workoutId = workoutId;
+            exerciseModal.classList.remove('hidden');
+        }
+
+        closeModalBtn.addEventListener('click', () => {
+            exerciseModal.classList.add('hidden');
+            document.getElementById('otherExerciseInput').value = '';
+            document.getElementById('otherExerciseContainer').classList.add('hidden');
+        });
+
+        saveExerciseBtn.addEventListener('click', () => {
+            const workoutId = parseInt(exerciseModal.dataset.workoutId);
+            let exerciseName = document.getElementById('exerciseSelect').value;
+            if (exerciseName === 'Other') {
+                const customName = document.getElementById('otherExerciseInput').value.trim();
+                if (!customName) {
+                    alert('Please enter a name for your custom exercise');
+                    return;
+                }
+                exerciseName = customName;
+            }
+            const weight = parseFloat(document.getElementById('weightInput').value);
+            const reps = parseInt(document.getElementById('repsInput').value);
+            const sets = parseInt(document.getElementById('setsInput').value);
+            const rpe = parseInt(document.getElementById('rpeInput').value);
+
+            if (!exerciseName || isNaN(weight) || isNaN(reps) || isNaN(sets) || isNaN(rpe)) {
+                alert('Please fill in all fields with valid values');
+                return;
+            }
+
+            const workout = workouts.find(w => w.id === workoutId);
+            if (workout) {
+                workout.exercises.push({
+                    name: exerciseName,
+                    weight: weight,
+                    reps: reps,
+                    sets: sets,
+                    rpe: rpe,
+                    date: new Date().toISOString()
+                });
+                saveWorkouts();
+                renderWorkouts();
+                renderHistory();
+                updateProgressRings();
+                exerciseModal.classList.add('hidden');
+                
+                // Reset form
+                document.getElementById('exerciseSelect').value = '';
+                document.getElementById('weightInput').value = '';
+                document.getElementById('repsInput').value = '';
+                document.getElementById('setsInput').value = '3';
+                document.getElementById('rpeInput').value = '7';
+            }
+        });
+
+        function saveWorkouts() {
+            if (!currentUser) return;
+            users[currentUser].workouts = workouts;
+            saveUserData();
+        }
+
+        function renderWorkouts() {
+            workoutList.innerHTML = '';
+            
+            if (workouts.length === 0) {
+                workoutList.innerHTML = `
+                    <div class="text-center py-8">
+                        <i class="fas fa-dumbbell text-4xl text-gray-300 mb-4"></i>
+                        <p class="text-gray-500">No workouts recorded yet</p>
+                        <button id="startWorkoutBtn" class="mt-4 bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg transition">
+                            Start Your First Workout
+                        </button>
+                    </div>
+                `;
+                document.getElementById('startWorkoutBtn').addEventListener('click', () => {
+                    const workoutId = Date.now();
+                    const newWorkout = {
+                        id: workoutId,
+                        date: new Date().toISOString(),
+                        exercises: []
+                    };
+                    workouts.push(newWorkout);
+                    saveWorkouts();
+                    renderWorkouts();
+                    openExerciseModal(workoutId);
+                });
+                return;
+            }
+            
+            // Show only the most recent workout by default
+            const mostRecentWorkout = workouts[workouts.length - 1];
+            renderWorkoutItem(mostRecentWorkout);
+        }
+
+        function renderWorkoutItem(workout) {
+            const workoutDate = new Date(workout.date);
+            const options = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' };
+            const formattedDate = workoutDate.toLocaleDateString('en-US', options);
+            
+            let exercisesHtml = '';
+            workout.exercises.forEach((exercise, index) => {
+                const suggestedWeight = calculateSuggestedWeight(exercise);
+                exercisesHtml += `
+                    <div class="exercise-card bg-gray-50 rounded-lg p-4 transition cursor-pointer hover:shadow-md">
+                        <div class="flex justify-between items-start">
+                            <div>
+                                <h3 class="font-bold text-gray-800">${exercise.name}</h3>
+                                <p class="text-sm text-gray-600">${exercise.sets} x ${exercise.reps} @ ${exercise.weight}kg (RPE ${exercise.rpe})</p>
+                            </div>
+                            <div class="text-right">
+                                <p class="text-sm font-medium text-blue-600">Next: ${suggestedWeight}kg</p>
+                                <p class="text-xs text-gray-500">${new Date(exercise.date).toLocaleDateString()}</p>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            });
+            
+            const workoutHtml = `
+                <div class="mb-6">
+                    <div class="flex justify-between items-center mb-4">
+                        <h3 class="font-semibold text-gray-800">${formattedDate}</h3>
+                        <button class="text-blue-600 hover:text-blue-800 text-sm font-medium" onclick="openExerciseModal(${workout.id})">
+                            <i class="fas fa-plus mr-1"></i> Add Exercise
+                        </button>
+                    </div>
+                    <div class="space-y-3">
+                        ${exercisesHtml || '<p class="text-gray-500 text-center py-4">No exercises added yet</p>'}
+                    </div>
+                </div>
+            `;
+            
+            workoutList.innerHTML = workoutHtml;
+        }
+
+        function renderHistory() {
+            historyTable.innerHTML = '';
+            
+            // Collect all exercises from all workouts
+            let allExercises = [];
+            workouts.forEach(workout => {
+                workout.exercises.forEach(exercise => {
+                    allExercises.push({
+                        ...exercise,
+                        workoutDate: workout.date
+                    });
+                });
+            });
+            
+            // Sort by date (newest first)
+            allExercises.sort((a, b) => new Date(b.workoutDate) - new Date(a.workoutDate));
+            
+            // Group by exercise name
+            const exercisesByName = {};
+            allExercises.forEach(exercise => {
+                if (!exercisesByName[exercise.name]) {
+                    exercisesByName[exercise.name] = [];
+                }
+                exercisesByName[exercise.name].push(exercise);
+            });
+            
+            // Create table rows
+            for (const [name, exercises] of Object.entries(exercisesByName)) {
+                const latestExercise = exercises[0];
+                const previousExercise = exercises[1];
+                
+                let progress = '';
+                if (previousExercise) {
+                    const progressValue = ((latestExercise.weight - previousExercise.weight) / previousExercise.weight * 100).toFixed(1);
+                    if (progressValue > 0) {
+                        progress = `<span class="text-green-600">+${progressValue}%</span>`;
+                    } else if (progressValue < 0) {
+                        progress = `<span class="text-red-600">${progressValue}%</span>`;
+                    } else {
+                        progress = `<span class="text-gray-600">0%</span>`;
+                    }
+                } else {
+                    progress = '<span class="text-gray-500">New</span>';
+                }
+                
+                const suggestedWeight = calculateSuggestedWeight(latestExercise);
+                const date = new Date(latestExercise.workoutDate).toLocaleDateString();
+                
+                const row = document.createElement('tr');
+                row.innerHTML = `
+                    <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">${name}</td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${latestExercise.weight}kg</td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm text-blue-600 font-medium">${suggestedWeight}kg</td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm">${progress}</td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${date}</td>
+                `;
+                historyTable.appendChild(row);
+            }
+        }
+
+        function calculateSuggestedWeight(exercise) {
+            // Simple progressive overload algorithm
+            // Increase weight based on RPE and reps
+            let increase = 0;
+            
+            if (exercise.rpe <= 6) {
+                // Easy effort - bigger increase
+                increase = 2.5;
+            } else if (exercise.rpe <= 8) {
+                // Moderate effort - standard increase
+                increase = 1.25;
+            } else {
+                // Hard effort - small or no increase
+                increase = 0.5;
+            }
+            
+            // Adjust based on reps (lower reps can handle bigger jumps)
+            if (exercise.reps >= 8) {
+                increase *= 0.5;
+            } else if (exercise.reps >= 5) {
+                increase *= 0.75;
+            }
+            
+            // Round to nearest 0.5kg
+            const suggested = exercise.weight + increase;
+            return Math.round(suggested * 2) / 2;
+        }
+
+        // Nutrition functions
+        addFoodBtn.addEventListener('click', () => {
+            const foodName = document.getElementById('foodInput').value.trim();
+            const calories = parseInt(document.getElementById('caloriesInput').value) || 0;
+            const protein = parseInt(document.getElementById('proteinInput').value) || 0;
+            const carbs = parseInt(document.getElementById('carbsInput').value) || 0;
+            
+            if (!foodName) {
+                alert('Please enter a food name');
+                return;
+            }
+            
+            nutritionData.foods.push({
+                name: foodName,
+                calories: calories,
+                protein: protein,
+                carbs: carbs,
+                date: new Date().toISOString()
+            });
+            
+            nutritionData.totalCalories += calories;
+            nutritionData.totalProtein += protein;
+            nutritionData.totalCarbs += carbs;
+            
+            saveNutritionData();
+            updateNutritionDisplay();
+            renderFoodList();
+            updateProgressRings();
+            
+            // Clear inputs
+            document.getElementById('foodInput').value = '';
+            document.getElementById('caloriesInput').value = '';
+            document.getElementById('proteinInput').value = '';
+            document.getElementById('carbsInput').value = '';
+        });
+
+        function saveNutritionData() {
+            if (!currentUser) return;
+            users[currentUser].nutritionData = nutritionData;
+            saveUserData();
+        }
+
+        function updateNutritionDisplay() {
+            caloriesElement.textContent = nutritionData.totalCalories;
+            proteinElement.textContent = `${nutritionData.totalProtein}g`;
+            carbsElement.textContent = `${nutritionData.totalCarbs}g`;
+        }
+
+        function renderFoodList() {
+            foodList.innerHTML = '';
+            
+            // Get today's foods
+            const today = new Date().toISOString().split('T')[0];
+            const todaysFoods = nutritionData.foods.filter(food => {
+                return food.date.split('T')[0] === today;
+            });
+            
+            if (todaysFoods.length === 0) {
+                foodList.innerHTML = '<li class="py-4 text-center text-gray-500">No food logged today</li>';
+                return;
+            }
+            
+            todaysFoods.forEach(food => {
+                const foodItem = document.createElement('li');
+                foodItem.className = 'py-3 flex justify-between';
+                foodItem.innerHTML = `
+                    <div>
+                        <p class="font-medium text-gray-800">${food.name}</p>
+                        <p class="text-xs text-gray-500">${new Date(food.date).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}</p>
+                    </div>
+                    <div class="text-right">
+                        <p class="text-sm font-medium">${food.calories} kcal</p>
+                        <p class="text-xs text-gray-500">P:${food.protein}g C:${food.carbs}g</p>
+                    </div>
+                `;
+                foodList.appendChild(foodItem);
+            });
+        }
+
+        // Progress functions
+        function updateProgressRings() {
+            // Strength progress (based on workout frequency and progression)
+            let strengthScore = 0;
+            if (workouts.length > 0) {
+                // Base score on number of workouts in the last 2 weeks
+                const twoWeeksAgo = new Date();
+                twoWeeksAgo.setDate(twoWeeksAgo.getDate() - 14);
+                
+                const recentWorkouts = workouts.filter(workout => {
+                    return new Date(workout.date) > twoWeeksAgo;
+                });
+                
+                strengthScore = Math.min(100, recentWorkouts.length * 15); // 15% per workout
+            }
+            
+            // Nutrition progress (based on protein intake)
+            let nutritionScore = 0;
+            if (nutritionData.totalProtein > 0) {
+                // Base score on protein intake (target 180g)
+                nutritionScore = Math.min(100, (nutritionData.totalProtein / 180) * 100);
+            }
+            
+            // Update UI
+            strengthRing.style.strokeDasharray = `${strengthScore}, 100`;
+            nutritionRing.style.strokeDasharray = `${nutritionScore}, 100`;
+            strengthPercent.textContent = `${Math.round(strengthScore)}%`;
+            nutritionPercent.textContent = `${Math.round(nutritionScore)}%`;
+        }
+
+        // Initialize food list
+        if (currentUser) {
+            const userData = getUserData();
+            workouts = userData.workouts;
+            nutritionData = userData.nutritionData;
+            renderFoodList();
+        }
+    </script>
+</body>
+</html>

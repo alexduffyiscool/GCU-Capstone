@@ -1,0 +1,27 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8" />
+  <title>Your Profile</title>
+</head>
+<body>
+  <h1>Your Profile</h1>
+  <p id="who"></p>
+  <button id="logoutBtn">Logout</button>
+
+  <script>
+    async function loadMe() {
+      const res = await fetch('/api/auth/me');
+      const out = await res.json();
+      if (!out.user) location.href = '/login.html';
+      document.getElementById('who').textContent = `Logged in as: ${out.user.username}`;
+    }
+    loadMe();
+
+    document.getElementById('logoutBtn').onclick = async () => {
+      await fetch('/api/auth/logout', { method: 'POST' });
+      location.href = '/login.html';
+    };
+  </script>
+</body>
+</html>
